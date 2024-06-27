@@ -1,17 +1,24 @@
 {
-  description = "Snowfall Lib";
+  description = "Starfire Lib";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-23.11";
-    # NOTE: `nix flake lock --update-input flake-utils-plus` is currently NOT
-    # giving us the appropriate revision. We need a fix from a recent PR in
-    # FUP, so this revision is being hard coded here for now.
-    flake-utils-plus.url = "github:gytis-ivaskevicius/flake-utils-plus?rev=3542fe9126dc492e53ddd252bb0260fe035f2c0f";
-
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+
+    flake-utils = {
+      url = "github:numtide/flake-utils?rev=ff7b65b44d01cf9ba6a71320833626af21126384";
+      inputs.systems.follows = "systems";
+    };
+
+    flake-utils-plus = {
+      url = "github:gytis-ivaskevicius/flake-utils-plus?rev=3542fe9126dc492e53ddd252bb0260fe035f2c0f";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
+    nixpkgs.url = "github:nixos/nixpkgs/release-24.05";
+    systems.url = "github:nix-systems/default-linux";
   };
 
   outputs = inputs: let
@@ -26,7 +33,7 @@
     # `lib.flake-utils-plus.mkApp`.
     # Usage: mkLib { inherit inputs; src = ./.; }
     #   result: lib
-    mkLib = import ./snowfall-lib core-inputs;
+    mkLib = import ./src core-inputs;
 
     # A convenience wrapper to create the library and then call `lib.mkFlake`.
     # Usage: mkFlake { inherit inputs; src = ./.; ... }
@@ -34,66 +41,79 @@
     mkFlake = flake-and-lib-options @ {
       inputs,
       src,
-      snowfall ? {},
+      starfire ? {},
       ...
     }: let
       lib = mkLib {
-        inherit inputs src snowfall;
+        inherit inputs src starfire;
       };
       flake-options = builtins.removeAttrs flake-and-lib-options ["inputs" "src"];
     in
       lib.mkFlake flake-options;
-  in {
-    inherit mkLib mkFlake;
+  in
+    {
+      inherit mkLib mkFlake;
 
-    nixosModules = {
-      user = ./modules/nixos/user/default.nix;
-    };
-
-    darwinModules = {
-      user = ./modules/darwin/user/default.nix;
-    };
-
-    homeModules = {
-      user = ./modules/home/user/default.nix;
-    };
-
-    formatter = {
-      x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.alejandra;
-      aarch64-linux = inputs.nixpkgs.legacyPackages.aarch64-linux.alejandra;
-      x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
-      aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
-    };
-
-    snowfall = rec {
-      raw-config = config;
-
-      config = {
-        root = ./.;
-        src = ./.;
-        namespace = "snowfall";
-        lib-dir = "snowfall-lib";
-
-        meta = {
-          name = "snowfall-lib";
-          title = "Snowfall Lib";
-        };
+      nixosModules = {
+        user = ./modules/nixos/user/default.nix;
       };
 
-      internal-lib = let
-        lib = mkLib {
-          src = ./.;
+      darwinModules = {
+        user = ./modules/darwin/user/default.nix;
+      };
 
-          inputs =
-            inputs
-            // {
-              self = {};
-            };
+      homeModules = {
+        user = ./modules/home/user/default.nix;
+      };
+
+      formatter = {
+        x86_64-linux = inputs.nixpkgs.legacyPackages.x86_64-linux.alejandra;
+        aarch64-linux = inputs.nixpkgs.legacyPackages.aarch64-linux.alejandra;
+        x86_64-darwin = inputs.nixpkgs.legacyPackages.x86_64-darwin.alejandra;
+        aarch64-darwin = inputs.nixpkgs.legacyPackages.aarch64-darwin.alejandra;
+      };
+
+      starfire = rec {
+        raw-config = config;
+
+        config = {
+          root = ./.;
+          src = ./.;
+          namespace = "starfire";
+          lib-dir = "src";
+
+          meta = {
+            name = "starfire-lib";
+            title = "starfire Lib";
+          };
         };
-      in
-        builtins.removeAttrs
-        lib.snowfall
-        ["internal"];
-    };
-  };
+
+        internal-lib = let
+          lib = mkLib {
+            src = ./.;
+
+            inputs =
+              inputs
+              // {
+                self = {};
+              };
+          };
+        in
+          builtins.removeAttrs
+          lib.starfire
+          ["internal"];
+      };
+    }
+    // (
+      inputs.flake-utils-plus.lib.eachDefaultSystem (
+        system:
+          with import inputs.nixpkgs {
+            inherit system;
+          }; {
+            devShells.default = mkShell {
+              packages = [nil alejandra];
+            };
+          }
+      )
+    );
 }
