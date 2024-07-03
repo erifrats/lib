@@ -4,12 +4,12 @@
   starfire-lib,
   starfire-config,
 }: let
-  inherit (builtins) baseNameOf;
-  inherit (core-inputs.nixpkgs.lib) foldl mapAttrs hasPrefix hasSuffix isFunction splitString tail;
+  inherit (builtins) baseNameOf elem;
+  inherit (core-inputs.nixpkgs.lib) foldl mapAttrs hasPrefix hasSuffix isFunction splitString tail singleton;
 
   user-modules-root = starfire-lib.fs.get-starfire-file "modules";
 in {
-  module = {
+  module = rec {
     ## Create flake output modules.
     ## Example Usage:
     ## ```nix
@@ -81,5 +81,34 @@ in {
       modules = modules-without-aliases // aliased-modules // overrides;
     in
       modules;
+
+    # Recursively and contextually fetch all modules in the given path.
+    # If a directory contains no default.nix, it will return all Nix files.
+    # If it contains a default.nix, it will return its path.
+    get-modules = src:
+      (
+        let
+          entries = starfire-lib.fs.get-nix-files src;
+          default = "${src}/default.nix";
+        in
+          if elem default entries
+          then singleton default
+          else entries
+      )
+      ++ foldl (
+        mods: path:
+          mods ++ get-modules path
+      ) [] (starfire-lib.fs.get-directories src);
+
+    get-modules' = src:
+      foldl (mods: path:
+        mods
+        ++ (
+          if hasPrefix "${user-modules-root}/home" path
+          then []
+          else singleton path
+        ))
+      []
+      (get-modules src);
   };
 }

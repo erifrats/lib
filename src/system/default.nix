@@ -280,22 +280,12 @@ in {
     }: let
       targets = starfire-lib.fs.get-directories user-systems-root;
       target-systems-metadata = concatMap get-target-systems-metadata targets;
-      user-nixos-modules = starfire-lib.module.create-modules {
-        src = "${user-modules-root}/nixos";
-      };
-      user-darwin-modules = starfire-lib.module.create-modules {
-        src = "${user-modules-root}/darwin";
-      };
       nixos-modules = systems.modules.nixos or [];
       darwin-modules = systems.modules.darwin or [];
 
       create-system' = created-systems: system-metadata: let
         overrides = systems.hosts.${system-metadata.name} or {};
-        user-modules =
-          if is-darwin system-metadata.target
-          then user-darwin-modules
-          else user-nixos-modules;
-        user-modules-list = builtins.attrValues user-modules;
+        user-modules = starfire-lib.module.get-modules' user-modules-root;
         system-modules =
           if is-darwin system-metadata.target
           then darwin-modules
@@ -305,7 +295,7 @@ in {
           // system-metadata
           // {
             systems = created-systems;
-            modules = user-modules-list ++ (overrides.modules or []) ++ system-modules;
+            modules = user-modules ++ (overrides.modules or []) ++ system-modules;
             inherit homes;
           });
       };

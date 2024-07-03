@@ -109,16 +109,6 @@ in rec {
       overrides = full-flake-options.templates or {};
       alias = alias.templates or {};
     };
-    nixos-modules = starfire-lib.module.create-modules {
-      src = starfire-lib.fs.get-starfire-file "modules/nixos";
-      overrides = full-flake-options.modules.nixos or {};
-      alias = alias.modules.nixos or {};
-    };
-    darwin-modules = starfire-lib.module.create-modules {
-      src = starfire-lib.fs.get-starfire-file "modules/darwin";
-      overrides = full-flake-options.modules.darwin or {};
-      alias = alias.modules.darwin or {};
-    };
     home-modules = starfire-lib.module.create-modules {
       src = starfire-lib.fs.get-starfire-file "modules/home";
       overrides = full-flake-options.modules.home or {};
@@ -168,8 +158,6 @@ in rec {
         lib = starfire-lib.internal.user-lib;
         inputs = starfire-lib.flake.without-src user-inputs;
 
-        nixosModules = nixos-modules;
-        darwinModules = darwin-modules;
         homeModules = home-modules;
 
         channelsConfig = full-flake-options.channels-config or {};
