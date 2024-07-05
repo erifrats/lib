@@ -286,6 +286,9 @@ in {
       create-system' = created-systems: system-metadata: let
         overrides = systems.hosts.${system-metadata.name} or {};
         user-modules = starfire-lib.module.get-modules' user-modules-root;
+        user-system-modules =
+          starfire-lib.module.get-modules
+          "${user-systems-root}/${get-resolved-system-target system-metadata.target}/${system-metadata.name}/modules";
         system-modules =
           if is-darwin system-metadata.target
           then darwin-modules
@@ -295,7 +298,7 @@ in {
           // system-metadata
           // {
             systems = created-systems;
-            modules = user-modules ++ (overrides.modules or []) ++ system-modules;
+            modules = user-modules ++ user-system-modules ++ (overrides.modules or []) ++ system-modules;
             inherit homes;
           });
       };
