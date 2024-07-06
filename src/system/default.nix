@@ -298,7 +298,7 @@ in {
           // system-metadata
           // {
             systems = created-systems;
-            modules = user-modules ++ user-system-modules ++ (overrides.modules or []) ++ system-modules;
+            modules = system-modules ++ (overrides.modules or []) ++ user-modules ++ user-system-modules;
             inherit homes;
           });
       };
